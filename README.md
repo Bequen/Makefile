@@ -23,3 +23,13 @@ In 'Make.make' edit:
 **INCLUDE**: all the libs need their .h files, this is where to look for them
 
 **FILES** other files that will need compilation, but doesn't have .h (header) file, usually 'main.cpp'
+
+
+### Desired Project Structure
+
+Makefile kinda expect usage of standard project structure, that said:
+
+libs/ = Where all the libraries go
+src/ = In case of library, here goes the .cpp files, otherwise even .h can go here
+include/${PROJECT_NAME}/ = Where all the .h files go in case of library
+third-party/ = Where all the sub projects go 

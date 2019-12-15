@@ -5,17 +5,21 @@ CPP_VERSION=c++2a
 
 include ./Make.make
 
-CPP_FLAGS+=-std=${CPP_VERSION} -DMAX_LIGHT_COUNT=32
+CPP_FLAGS+=-std=${CPP_VERSION}
 CPP_DEBUG_FLAGS+=${CPP_FLAGS} -O0 -g3 -ggdb -DDEBUG
-CPP_DEFINITIONS+=-DPROJECT_NAME=${PROJECT_NAME}
+CPP_DEFINITIONS+=-DPROJECT_NAME=\"${PROJECT_NAME}\"
 
-# Actual code files
+# All the .cpp and .c files
 SOURCE=$(foreach dir, $(addprefix ${SOURCE_DIR}, ${FILES_SUB_DIRS}), $(wildcard $(dir)/*.cpp)) $(addprefix ${SOURCE_DIR}, ${FILES})
-HEADERS=$(foreach dir, $(addprefix ${INCLUDE_DIR}, ${FILES_SUB_DIRS}), $(wildcard $(dir)/*.h))
+# All the header files
+INCLUDE=$(foreach dir, $(addprefix ${INCLUDE_DIR}/${PROJECT_NAME}, ${FILES_SUB_DIRS}), $(wildcard $(dir)/*.h))
 
 # Libs
-LIB_INCLUDE=$(addprefix -I${THIRD_PARTY}, ${INCLUDE}) -I${THIRD_PARTY} -I${INCLUDE_DIR}
-LIB_FILES=$(addprefix -L${THIRD_PARTY}, ${LIB_DIRS})
+LIB_INCLUDE=$(addprefix -I${THIRD_PARTY}, ${LIB_INCLUDE_DIRS}) -I${THIRD_PARTY} -I${INCLUDE_DIR}
+# Where to look for libraries
+LIB_FILES=$(addprefix -L${THIRD_PARTY}, ${LIB_DIRS}) -L${LIB_DIR}
+# Libraries to use, each file must be in format 'lib{name}.so' or 'lib{name}.dll'
+DEPS:=$(addprefix -l, ${DEPS})
 
 ODIR=obj
 OBJ=${SOURCE:.cpp=.o}
@@ -24,21 +28,20 @@ OBJ=${SOURCE:.cpp=.o}
 .PHONY: debug
 debug: ${OBJ}
 	@echo -e "\033[0;34mCompiling ${PROJECT_NAME}\033[0m"
-	@${CPP_COMPILER} ${CPP_DEBUG_FLAGS} ${CPP_DEFINITIONS} -o ${DIR}${PROJECT_NAME} $^ ./src/glad.c ${LIBS} ${LIB_FILES} ${LIB_INCLUDE} 
+	@${CPP_COMPILER} ${CPP_DEBUG_FLAGS} ${CPP_DEFINITIONS} -o ${DIR}${PROJECT_NAME} $^ ${DEPS} ${LIB_FILES} ${LIB_INCLUDE} 
 	@echo -e "\033[0;32mCompiling finished\033[0m"
 
 .PHONY: release
 release: ${OBJ}
 	@echo -e "\033[0;35mCreating release build"
 	@echo -e "\033[0;34mCompiling ${PROJECT_NAME}\033[0m"
-	@${CPP_COMPILER} ${CPP_FLAGS} ${CPP_DEFINITIONS} -o ${DIR}${PROJECT_NAME} $^ ./src/glad.c ${LIBS} ${LIB_FILES} ${LIB_INCLUDE} 
+	@${CPP_COMPILER} ${CPP_FLAGS} ${CPP_DEFINITIONS} -o ${DIR}${PROJECT_NAME} $^ ${LIBS} ${LIB_FILES} ${LIB_INCLUDE} 
 	@echo -e "\033[0;32mCompiling finished\033[0m"
 
-# Final targets
 .PHONY: library
-library: ${OBJ}
-	@ar rvs -c lib${PROJECT_NAME}.a $^
+library: lib${PROJECT_NAME}.so
 
+# Final targets
 .PHONY: test
 test: debug
 	./${PROJECT_NAME}
@@ -49,11 +52,16 @@ build:
 	@${MAKE} DIR=./build/ release
 	@cp -r assets ./build/
 
+# FILES
 $(OBJ): %.o: %.cpp
 	@echo -e "\033[0;34m Compiling $^ for $@\033[0m"
 	@${CPP_COMPILER} ${CPP_DEBUG_FLAGS} ${CPP_DEFINITIONS} ${LIB_INCLUDE} -c -o $@ $<
 	@echo -e "\033[0;32mCompiling $^ for $@ was successfull\033[0m"
 
+lib${PROJECT_NAME}.so: ${OBJ}
+	@echo Creating $@ static library
+	@ar rvs -c lib${PROJECT_NAME}.a $^
+	@echo Creating $@ is complete
 
 # CLEANING
 .PHONY: clean
