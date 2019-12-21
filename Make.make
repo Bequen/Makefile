@@ -21,3 +21,9 @@ LIB_INCLUDE_DIRS=
 
 # Other files that should be compiled into .o file
 FILES=main.cpp
+
+# Define default target
+.DEFAULT:= 
+
+# Declare here custom targets
+# Warning, these are taken before any other, which they are default by default, use above variable to set it to test or something
